@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     <div class="header">
-      <el-select v-model="value" placeholder="请选择">
+      <el-select v-model="value" placeholder="请选择请求类型">
         <el-option
           v-for="item in options"
           :key="item.value"
@@ -15,7 +15,7 @@
     </div>
     <el-tabs v-model="activeName">
       <el-tab-pane label="Params" name="get">
-        <table cellpadding="0" cellspacing="0">
+        <table cellpadding="0" cellspacing="0" style="width:100%">
           <tr>
             <td>KEY</td>
             <td>VALUE</td>
@@ -34,7 +34,7 @@
         </table>
       </el-tab-pane>
       <el-tab-pane label="Body" name="post">
-        <table cellpadding="0" cellspacing="0">
+        <table cellpadding="0" cellspacing="0" style="width:100%">
           <tr>
             <td>KEY</td>
             <td>VALUE</td>
@@ -47,24 +47,6 @@
             <td>
               <input v-model="item.value" />
               <i class="el-icon-close" @click="remove1(index)"></i>
-            </td>
-          </tr>
-        </table>
-      </el-tab-pane>
-      <el-tab-pane label="headers" name="headers">
-        <table cellpadding="0" cellspacing="0">
-          <tr>
-            <td>KEY</td>
-            <td>VALUE</td>
-          </tr>
-          <tr v-for="(item, index) in formData" :key="item.id">
-            <td>
-              <i class="el-icon-plus" @click="add2"></i>
-              <input v-model="item.key" />
-            </td>
-            <td>
-              <input v-model="item.value" />
-              <i class="el-icon-close" @click="remove3(index)"></i>
             </td>
           </tr>
         </table>
@@ -91,7 +73,6 @@ export default {
       activeName: "get",
       items: [{ id: 1, key: "", value: "" }],
       formData: [{ id: 1, key: "", value: "" }],
-      data: {},
       headers: [{ id: 1, key: "", value: "" }],
       header: {}
     };
@@ -107,11 +88,6 @@ export default {
       let _id = this.formData[length].id + 1;
       this.formData.push({ id: _id, key: "", value: "" });
     },
-    add2() {
-      const length = this.headers.length - 1;
-      let _id = this.headers[length].id + 1;
-      this.headers.push({ id: _id, key: "", value: "" });
-    },
     remove(index) {
       const length = this.items.length;
       if (length > 1) {
@@ -124,14 +100,9 @@ export default {
         this.formData.splice(index, 1);
       }
     },
-    remove2(index) {
-      const length = this.headers.length;
-      if (length > 1) {
-        this.headers.splice(index, 1);
-      }
-    },
     handleSubmit() {
       let URL = this.url;
+      let requestBody = {};
       this.items.forEach((value, index) => {
         if (index === 0) {
           if (value.key !== "" && value.value !== "")
@@ -140,23 +111,28 @@ export default {
           URL += "&" + value.key + "=" + value.value;
         }
       });
+      console.log(this.formData);
       this.formData.forEach(value => {
-        this.data[value.key] = value.value;
-      });
-      this.headers.forEach(value => {
-        this.header[value.key] = value.value;
+        requestBody[value.key] = value.value;
       });
       this.$axios({
         method: this.value,
         url: URL,
-        data: this.data,
-        headers: this.header
+        data: requestBody
       });
     }
   }
 };
 </script>
 <style lang="less">
+#app {
+  width: 50%;
+  height: 100vh;
+  margin: 0 auto;
+  border: 1px solid #dcdfe6;
+  padding: 5px;
+  box-sizing: border-box;
+}
 .header {
   display: flex;
 }
@@ -171,6 +147,7 @@ table tr td {
   input {
     margin: 5px;
     border: 0;
+    width: 90%;
   }
   i {
     display: none !important;
