@@ -10,7 +10,7 @@
         >
         </el-option>
       </el-select>
-      <el-input v-model="url" placeholder="请输入URL"></el-input>
+      <el-input v-model="url" clearable placeholder="请输入URL"></el-input>
       <el-button type="primary" @click="handleSubmit">send</el-button>
     </div>
     <el-tabs v-model="activeName">
@@ -24,10 +24,10 @@
           <tr v-for="(item, index) in items" :key="item.id">
             <td>
               <i class="el-icon-plus" @click="add"></i>
-              <input v-model="item.key" />
+              <input v-model="item.key" @input="changeValue" />
             </td>
             <td>
-              <input v-model="item.value" />
+              <input v-model="item.value" @input="changeValue" />
               <i class="el-icon-close" @click="remove(index)"></i>
             </td>
           </tr>
@@ -77,7 +77,47 @@ export default {
       header: {}
     };
   },
+  watch: {
+    url(newValue) {
+      const re_key = /(?:(?<=\?)|(?<=&))\w*\W*(?:(?==)|$)/g,
+        re_value = /(?<==)\w*\W*(?:(?=&)|$)/g;
+      const str_key = newValue.match(re_key),
+        str_value = newValue.match(re_value);
+      const re = /^((https|http|ftp|rtsp|mms)?:\/\/)[^\s]+(?:\/|(?=\?))/;
+      this.base_url = newValue.match(re)[0];
+      this.items = [{ id: 1, key: "", value: "" }];
+      let i = 2;
+      try {
+        str_key.forEach((value, index) => {
+          str_value.forEach((val, inx) => {
+            if (index === inx) {
+              this.items.push({ id: i++, key: value, value: val });
+            }
+          });
+        });
+      } catch (error) {
+        // console.log(error);
+      }
+    }
+  },
   methods: {
+    changeValue() {
+      console.log(this.base_url);
+      console.log(/\?/.test(this.url));
+      // if (/\?/.test(this.url)) {
+      let URL = "";
+      console.log(this.items);
+      this.items.forEach((value, index) => {
+        if (index == 0) {
+          URL = this.base_url + "?" + value.key + "=" + value.value;
+        } else {
+          URL = URL + "&" + value.key + "=" + value.value;
+        }
+        console.log(URL);
+      });
+      this.url = URL;
+      // }
+    },
     add() {
       const length = this.items.length - 1;
       let _id = this.items[length].id + 1;
@@ -111,7 +151,6 @@ export default {
           URL += "&" + value.key + "=" + value.value;
         }
       });
-      console.log(this.formData);
       this.formData.forEach(value => {
         requestBody[value.key] = value.value;
       });
