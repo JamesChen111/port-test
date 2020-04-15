@@ -10,7 +10,7 @@
         >
         </el-option>
       </el-select>
-      <el-input v-model="url" clearable placeholder="请输入URL"></el-input>
+      <el-input v-model="url" placeholder="请输入URL"></el-input>
       <el-button type="primary" @click="handleSubmit">send</el-button>
     </div>
     <el-tabs v-model="activeName">
@@ -71,7 +71,7 @@ export default {
       value: "",
       url: "",
       activeName: "get",
-      items: [{ id: 1, key: "", value: "" }],
+      items: [],
       formData: [{ id: 1, key: "", value: "" }],
       headers: [{ id: 1, key: "", value: "" }],
       header: {}
@@ -83,18 +83,32 @@ export default {
         re_value = /(?<==)\w*\W*(?:(?=&)|$)/g;
       const str_key = newValue.match(re_key),
         str_value = newValue.match(re_value);
-      const re = /^((https|http|ftp|rtsp|mms)?:\/\/)[^\s]+(?:\/|(?=\?))/;
-      this.base_url = newValue.match(re)[0];
-      this.items = [{ id: 1, key: "", value: "" }];
-      let i = 2;
       try {
-        str_key.forEach((value, index) => {
-          str_value.forEach((val, inx) => {
-            if (index === inx) {
-              this.items.push({ id: i++, key: value, value: val });
+        let i = 0;
+        if (str_key == null && str_value == null) {
+          this.items = [];
+          this.items.push({ id: i++, key: "", value: "" });
+        } else {
+          const re = /^((https|http|ftp|rtsp|mms)?:\/\/)[^\s]+(?:\/|(?=\?))/;
+          this.base_url = newValue.match(re)[0];
+          const str_key_len = str_key.length - 1,
+            str_value_len = str_value.length - 1;
+          this.items = [];
+          str_key.forEach((value, index) => {
+            str_value.forEach((val, inx) => {
+              if (index === inx) {
+                this.items.push({ id: i++, key: value, value: val });
+              }
+            });
+            if (index === str_key_len && str_key_len > str_value_len) {
+              this.items.push({
+                id: i++,
+                key: value,
+                value: ""
+              });
             }
           });
-        });
+        }
       } catch (error) {
         // console.log(error);
       }
@@ -102,21 +116,27 @@ export default {
   },
   methods: {
     changeValue() {
-      console.log(this.base_url);
-      console.log(/\?/.test(this.url));
-      // if (/\?/.test(this.url)) {
-      let URL = "";
-      console.log(this.items);
+      let URL,
+        len = this.items.length - 1;
+      if (this.base_url == undefined) {
+        URL = this.url;
+      } else {
+        URL = this.base_url;
+      }
       this.items.forEach((value, index) => {
         if (index == 0) {
-          URL = this.base_url + "?" + value.key + "=" + value.value;
+          if (!value.value) {
+            URL += "?" + value.key;
+          } else URL += "?" + value.key + "=" + value.value;
         } else {
-          URL = URL + "&" + value.key + "=" + value.value;
+          if (!value.value && index === len) {
+            URL += "&" + value.key;
+          } else {
+            URL += "&" + value.key + "=" + value.value;
+          }
         }
-        console.log(URL);
       });
       this.url = URL;
-      // }
     },
     add() {
       const length = this.items.length - 1;
