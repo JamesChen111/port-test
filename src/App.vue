@@ -1,5 +1,5 @@
 <template>
-  <div id="app">
+  <div id="app" ref="app">
     <div class="header">
       <el-select v-model="value" placeholder="请选择请求类型">
         <el-option
@@ -11,7 +11,9 @@
         </el-option>
       </el-select>
       <el-input v-model="url" placeholder="请输入URL"></el-input>
-      <el-button type="primary" @click="handleSubmit">send</el-button>
+      <el-button type="primary" :loading="sending" @click="handleSubmit">{{
+        prompt
+      }}</el-button>
     </div>
     <el-tabs v-model="activeName">
       <el-tab-pane label="Params" name="get">
@@ -33,29 +35,24 @@
           </tr>
         </table>
       </el-tab-pane>
-      <el-tab-pane label="Body" name="post">
-        <table cellpadding="0" cellspacing="0" style="width:100%">
-          <tr>
-            <td>KEY</td>
-            <td>VALUE</td>
-          </tr>
-          <tr v-for="(item, index) in formData" :key="item.id">
-            <td>
-              <i class="el-icon-plus" @click="add1"></i>
-              <input v-model="item.key" />
-            </td>
-            <td>
-              <input v-model="item.value" />
-              <i class="el-icon-close" @click="remove1(index)"></i>
-            </td>
-          </tr>
-        </table>
+      <el-tab-pane label="Body" name="body">
+        <request-config :config.sync="formData"></request-config>
+      </el-tab-pane>
+      <el-tab-pane label="Headers" name="headers">
+        <request-config :config.sync="headers"></request-config>
       </el-tab-pane>
     </el-tabs>
+    <div style="background: #fafafa;color:#a9a9a9;padding: 10px 0">Resonpe</div>
+    <div class="response" ref="response"></div>
   </div>
 </template>
 <script>
+import JSONFormatter from "json-formatter-js";
+import RequestConfig from "@/components/RequestConfig";
 export default {
+  components: {
+    RequestConfig
+  },
   data() {
     return {
       options: [
@@ -72,9 +69,11 @@ export default {
       url: "",
       activeName: "get",
       items: [],
+      res: {},
       formData: [{ id: 1, key: "", value: "" }],
       headers: [{ id: 1, key: "", value: "" }],
-      header: {}
+      sending: false,
+      prompt: "send"
     };
   },
   watch: {
@@ -143,42 +142,46 @@ export default {
       let _id = this.items[length].id + 1;
       this.items.push({ id: _id, key: "", value: "" });
     },
-    add1() {
-      const length = this.formData.length - 1;
-      let _id = this.formData[length].id + 1;
-      this.formData.push({ id: _id, key: "", value: "" });
-    },
     remove(index) {
       const length = this.items.length;
       if (length > 1) {
         this.items.splice(index, 1);
       }
-    },
-    remove1(index) {
-      const length = this.formData.length;
-      if (length > 1) {
-        this.formData.splice(index, 1);
-      }
+      this.changeValue();
     },
     handleSubmit() {
-      let URL = this.url;
-      let requestBody = {};
-      this.items.forEach((value, index) => {
-        if (index === 0) {
-          if (value.key !== "" && value.value !== "")
-            URL += "?" + value.key + "=" + value.value;
-        } else {
-          URL += "&" + value.key + "=" + value.value;
-        }
-      });
+      let resBodyData = {},
+        headerData = {};
       this.formData.forEach(value => {
-        requestBody[value.key] = value.value;
+        resBodyData = Object.assign({}, resBodyData, {
+          [value.key]: value.value
+        });
       });
+      this.headers.forEach(value => {
+        headerData = Object.assign({}, headerData, {
+          [value.key]: value.value
+        });
+      });
+      this.sending = true;
+      this.prompt = "sending";
       this.$axios({
         method: this.value,
-        url: URL,
-        data: requestBody
-      });
+        url: this.url,
+        headers: headerData,
+        data: resBodyData,
+        timeout: 5000
+      })
+        .then(res => {
+          this.sending = false;
+          this.prompt = "send";
+          const formatter = new JSONFormatter(res.data, Infinity);
+          this.$refs.response.appendChild(formatter.render());
+        })
+        .catch(err => {
+          console.log(err);
+          this.sending = false;
+          this.prompt = "send";
+        });
     }
   }
 };
@@ -186,7 +189,7 @@ export default {
 <style lang="less">
 #app {
   width: 50%;
-  height: 100vh;
+  // height: 100vh;
   margin: 0 auto;
   border: 1px solid #dcdfe6;
   padding: 5px;
@@ -199,24 +202,25 @@ table {
   border-collapse: collapse;
 }
 table tr td {
-  position: relative;
   border: 1px solid #eaeaea;
   text-align: left;
   height: 30px;
   input {
     margin: 5px;
     border: 0;
-    width: 90%;
+    width: 80%;
   }
   i {
     display: none !important;
-    padding: 0 10px;
     cursor: pointer;
   }
 }
 table tr:hover {
   i {
-    display: inline-block !important;
+    display: inline !important;
+  }
+  .response {
+    height: 80%;
   }
 }
 </style>
